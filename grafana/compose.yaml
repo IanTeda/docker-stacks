@@ -21,7 +21,7 @@ services:
     volumes:
       - ${GF_PATH:-.}/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d grafana -U grafana"]
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB:-grafana} -U ${POSTGRES_USER:-grafana}"]
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
   
