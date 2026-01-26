@@ -5,6 +5,19 @@
 # - Seafile Documentation: https://manual.seafile.com/
 # - Seafile Docker: https://github.com/haiwen/seafile-docker
 #
+# A manual edit is required to make Seafile work correctly behind a Cloudflare tunnel or proxy.
+# Edit 
+#
+# $ nvim sudo nvim <SEAFILE_DATA_PATH>/seafile/conf/seahub_settings.py
+#
+# ```python
+# ... Other code
+#
+# CSRF_TRUSTED_ORIGINS = ['https://<SEAFILE_SERVER_HOSTNAME>']
+#
+# ... Other code
+# ```
+#
 # Version: 1.0.0
 # Last Updated: 2026-01-26
 # Changes: Initial setup with Seafile server, database, cache, and shared network
@@ -82,12 +95,6 @@ services:
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      # # Add these to fix CSRF issues behind Cloudflare proxy
-      # - ALLOWED_HOSTS=${SEAFILE_SERVER_HOSTNAME}
-      # - CSRF_TRUSTED_ORIGINS=https://${SEAFILE_SERVER_HOSTNAME}
-      # - FORCE_HTTPS=true
-      # - SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')   
-      # - USE_X_FORWARDED_HOST=true
     depends_on:
       db:
         condition: service_healthy
