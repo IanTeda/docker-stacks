@@ -1,9 +1,33 @@
-# Cloudflare tunnel network container
+# Docker Compose file for Cloudflared Zero Trust Tunnel
+# This file sets up a Cloudflared container to run a zero trust tunnel,
+# allowing secure access to services without opening ports on the firewall.
+#
+# References:
+# - Cloudflare Tunnel Documentation: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/
+# - Cloudflared GitHub: https://github.com/cloudflare/cloudflared
+#
 
-# To get access in other containers use
-# networks:
-#   cloudflared-network:
-#    external: true
+#
+# # How to get started:
+# 
+# 1. Create a Cloudflare account and set up a Zero Trust Tunnel.
+# 2. Obtain your tunnel token from the Cloudflare `Zero Trust` dashboard.
+# 3. Copy env.example to .env and set CLOUDFLARED_TUNNEL_TOKEN with your tunnel token from Cloudflare.
+# 4. Run: docker-compose up -d
+# 5. Include the cloudflared-network in other docker-compose files to allow access to services via the tunnel.
+#
+#  ```yaml
+#  networks:
+#    cloudflared-network:
+#      external: true
+#  ```
+#
+# Version: 1.0.0
+# Last Updated: 2026-01-26
+# Changes: Initial setup with Cloudflared zero trust tunnel and shared network configuration
+
+---
+
 networks:
   default:
     name: cloudflared-network
