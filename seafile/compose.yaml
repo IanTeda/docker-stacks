@@ -1,4 +1,25 @@
+# Docker Compose file for Seafile Server
+# This file sets up a complete Seafile server stack with MariaDB, Redis, Memcached, and the Seafile application.
+#
+# References:
+# - Seafile Documentation: https://manual.seafile.com/
+# - Seafile Docker: https://github.com/haiwen/seafile-docker
+#
+# Version: 1.0.0
+# Last Updated: 2026-01-26
+# Changes: Initial setup with Seafile server, database, cache, and shared network
+
+---
+
+networks:
+  default: # this docker-compose network
+    name: seafile-network
+    driver: bridge
+  cloudflared-network:
+    external: true
+
 services:
+  # Service must be 'db' for Seafile to work correctly
   db:
     image: mariadb:10.11
     container_name: seafile-mysql
@@ -6,23 +27,47 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:? "Environment variable MYSQL_ROOT_PASSWORD must be set"}
       - MYSQL_LOG_CONSOLE=true
+      - MARIADB_AUTO_UPGRADE=1
     volumes:
-      - ./opt/seafile-mysql:/var/lib/mysql
+      - ${SEAFILE_DATA_PATH:-./.data}/mariadb:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/usr/local/bin/healthcheck.sh",
+          "--connect",
+          "--mariadbupgrade",
+          "--innodb_initialized",
+        ]
+      interval: 20s
+      start_period: 30s
+      timeout: 5s
+      retries: 10
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  # Service must be 'redis' for Seafile to work correctly
+  redis:
+    image: redis
+    container_name: seafile-redis
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - redis-server --requirepass "$$REDIS_PASSWORD"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
 
-  memcached:
-    image: memcached:1.6
-    container_name: seafile-memcached
-    restart: always
-    entrypoint: memcached -m 256
-
-  seafile:
-    image: seafileltd/seafile-mc:latest
+  seafile: 
+    image: seafileltd/seafile-mc:${SEAFILE_VERSION:-latest}
     container_name: seafile
     restart: always
     ports:
       - "8082:80"
     volumes:
-      - ./opt/seafile-data:/shared
+      - ${SEAFILE_DATA_PATH:-./.data}:/shared
     environment:
       - DB_HOST=db
       - DB_ROOT_PASSWD=${MYSQL_ROOT_PASSWORD:? "Environment variable MYSQL_ROOT_PASSWORD must be set"}
@@ -30,6 +75,19 @@ services:
       - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD:? "Environment variable SEAFILE_ADMIN_PASSWORD must be set"}
       - SEAFILE_SERVER_HOSTNAME=${SEAFILE_SERVER_HOSTNAME:? "Environment variable SEAFILE_SERVER_HOSTNAME must be set"}
       - TIME_ZONE=${TIME_ZONE:? "Environment variable TIME_ZONE must be set"}
+      - CACHE_PROVIDER=${CACHE_PROVIDER:-redis}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     depends_on:
-      - db
-      - memcached
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+      - cloudflared-network
