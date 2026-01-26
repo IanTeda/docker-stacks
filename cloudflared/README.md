@@ -7,7 +7,6 @@ Cloudflare zero trust tunnels can be used without having to open up ports on you
 On creating a new tunnel a clodflare provide a token that should be added to the `CLOUDFLARED_TUNNEL_TOKEN` variable in .env
 
 ```properties
-CLOUDFLARED_VERSION=AddVersionIfYoudoNotWantLatest
 CLOUDFLARED_TUNNEL_TOKEN=ReplaceWithZeroTrustTunnelToken
 ```
 
@@ -16,16 +15,21 @@ CLOUDFLARED_TUNNEL_TOKEN=ReplaceWithZeroTrustTunnelToken
 Add the Cloudflared tunnel network to your docker compose file
 
 ```dockerfile
+... Other configuraiton 
+
 networks:
   default: # this docker-compose network
     driver: bridge
-  cloudflared_tunnel_network: # Cloudflare zero trust tunnel network
+  cloudflared-network: # Cloudflare zero trust tunnel network
     external: true
 
+...
+
 services:
-  app:
+  <app>:
     networks:
-      - cloudflared_tunnel_network
- ...
+      - cloudflared-network
+
+... Other configuration
 
 ```

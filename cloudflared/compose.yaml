@@ -2,21 +2,20 @@
 
 # To get access in other containers use
 # networks:
-#   cloudflare:
+#   cloudflared-network:
 #    external: true
 networks:
   default:
-    name: cloudflare
+    name: cloudflared-network
     driver: bridge
 
 services:
   cloudflared:
-    # https://github.com/cloudflare/cloudflared/releases
     image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-latest}
     container_name: cloudflared
-    command: tunnel run
+    command: tunnel --no-autoupdate run
     environment:
-      - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
+      - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN-? "Environment variable CLOUDFLARED_TUNNEL_TOKEN must be set"}
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
