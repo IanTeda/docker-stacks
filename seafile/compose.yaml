@@ -1,0 +1,35 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: seafile-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:? "Environment variable MYSQL_ROOT_PASSWORD must be set"}
+      - MYSQL_LOG_CONSOLE=true
+    volumes:
+      - ./opt/seafile-mysql:/var/lib/mysql
+
+  memcached:
+    image: memcached:1.6
+    container_name: seafile-memcached
+    restart: always
+    entrypoint: memcached -m 256
+
+  seafile:
+    image: seafileltd/seafile-mc:latest
+    container_name: seafile
+    restart: always
+    ports:
+      - "8082:80"
+    volumes:
+      - ./opt/seafile-data:/shared
+    environment:
+      - DB_HOST=db
+      - DB_ROOT_PASSWD=${MYSQL_ROOT_PASSWORD:? "Environment variable MYSQL_ROOT_PASSWORD must be set"}
+      - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL:? "Environment variable SEAFILE_ADMIN_EMAIL must be set"}
+      - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD:? "Environment variable SEAFILE_ADMIN_PASSWORD must be set"}
+      - SEAFILE_SERVER_HOSTNAME=${SEAFILE_SERVER_HOSTNAME:? "Environment variable SEAFILE_SERVER_HOSTNAME must be set"}
+      - TIME_ZONE=${TIME_ZONE:? "Environment variable TIME_ZONE must be set"}
+    depends_on:
+      - db
+      - memcached
