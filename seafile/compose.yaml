@@ -81,6 +81,12 @@ services:
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      # Add these to fix CSRF issues behind Cloudflare proxy
+      - ALLOWED_HOSTS=${SEAFILE_SERVER_HOSTNAME}
+      - CSRF_TRUSTED_ORIGINS=https://${SEAFILE_SERVER_HOSTNAME}
+      - FORCE_HTTPS=true
+      - SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https
+      - USE_X_FORWARDED_HOST=true
     depends_on:
       db:
         condition: service_healthy
