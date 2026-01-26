@@ -12,7 +12,7 @@
 ---
 
 networks:
-  default: # this docker-compose network
+  default: # this is docker-compose networ
     name: seafile-network
     driver: bridge
   cloudflared-network:
@@ -21,7 +21,7 @@ networks:
 services:
   # Service must be 'db' for Seafile to work correctly
   db:
-    image: mariadb:10.11
+    image: mariadb:${MARIADB_VERSION:-10.11}
     container_name: seafile-mysql
     restart: always
     environment:
@@ -51,7 +51,7 @@ services:
   
   # Service must be 'redis' for Seafile to work correctly
   redis:
-    image: redis
+    image: redis:${REDIS_VERSION:-latest}
     container_name: seafile-redis
     restart: unless-stopped
     command:
@@ -66,8 +66,8 @@ services:
     container_name: seafile
     restart: always
     # Don't expose ports here, use cloudflared or proxy access
-    # ports:
-    #   - "8082:80"
+    ports:
+      - "8082:80"
     volumes:
       - ${SEAFILE_DATA_PATH:-./.data}:/shared
     environment:
@@ -76,17 +76,18 @@ services:
       - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL:? "Environment variable SEAFILE_ADMIN_EMAIL must be set"}
       - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD:? "Environment variable SEAFILE_ADMIN_PASSWORD must be set"}
       - SEAFILE_SERVER_HOSTNAME=${SEAFILE_SERVER_HOSTNAME:? "Environment variable SEAFILE_SERVER_HOSTNAME must be set"}
+      - SEAFILE_SERVER_PROTOCOL=${SEAFILE_SERVER_PROTOCOL:-https}
       - TIME_ZONE=${TIME_ZONE:? "Environment variable TIME_ZONE must be set"}
       - CACHE_PROVIDER=${CACHE_PROVIDER:-redis}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      # Add these to fix CSRF issues behind Cloudflare proxy
-      - ALLOWED_HOSTS=${SEAFILE_SERVER_HOSTNAME}
-      - CSRF_TRUSTED_ORIGINS=https://${SEAFILE_SERVER_HOSTNAME}
-      - FORCE_HTTPS=true
-      - SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https
-      - USE_X_FORWARDED_HOST=true
+      # # Add these to fix CSRF issues behind Cloudflare proxy
+      # - ALLOWED_HOSTS=${SEAFILE_SERVER_HOSTNAME}
+      # - CSRF_TRUSTED_ORIGINS=https://${SEAFILE_SERVER_HOSTNAME}
+      # - FORCE_HTTPS=true
+      # - SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')   
+      # - USE_X_FORWARDED_HOST=true
     depends_on:
       db:
         condition: service_healthy
