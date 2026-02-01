@@ -61,6 +61,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
   
   # Service must be 'redis' for Seafile to work correctly
   redis:
@@ -81,6 +83,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
 
   seafile: 
     image: seafileltd/seafile-mc:${SEAFILE_VERSION:-latest}
@@ -122,3 +126,5 @@ services:
     networks:
       - default
       - cloudflared-network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
