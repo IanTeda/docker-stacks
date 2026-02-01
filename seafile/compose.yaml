@@ -67,18 +67,26 @@ services:
     image: redis:${REDIS_VERSION:-latest}
     container_name: seafile-redis
     restart: unless-stopped
+    volumes:
+      - ${SEAFILE_DATA_PATH:-./.data}/redis:/shared
     command:
       - /bin/sh
       - -c
       - redis-server --requirepass "$$REDIS_PASSWORD"
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   seafile: 
     image: seafileltd/seafile-mc:${SEAFILE_VERSION:-latest}
     container_name: seafile
     restart: always
-    # Don't expose ports here, use cloudflared or proxy access
+    # We can comment out the ports and use cloudflared or proxy access
     ports:
       - "8082:80"
     volumes:
@@ -99,7 +107,13 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/accounts/login/"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 90s
     logging:
       driver: json-file
       options:
