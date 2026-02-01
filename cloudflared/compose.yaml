@@ -36,17 +36,29 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-latest}
     container_name: cloudflared
-    command: tunnel --no-autoupdate run
+    command: tunnel  --metrics 127.0.0.1:60123 --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN-? "Environment variable CLOUDFLARED_TUNNEL_TOKEN must be set"}
-      - TUNNEL_METRICS=127.0.0.1:49312
+      # - TUNNEL_METRICS=o.0.0.0:60123
       - TUNNEL_TRANSPORT_PROTOCOL=http2
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "cloudflared", "tunnel", "ready"]
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:60123", "ready"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     labels:
       - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+  
+  # cloudflare-tunnel-healthy:
+  #   image: quay.io/curl/curl:8.10.1
+  #   init: true
+  #   command: sleep infinity
+  #   depends_on:
+  #     - cloudflare-tunnel
+  #   healthcheck:
+  #     test: ['CMD-SHELL', 'curl -fsS http://cloudflared:60123/ready']
+  #     interval: 1s
+  #     timeout: 2s
+  #     retries: 60
