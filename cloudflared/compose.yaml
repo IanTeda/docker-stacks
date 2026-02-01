@@ -36,9 +36,11 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-latest}
     container_name: cloudflared
-    command: tunnel --no-autoupdate run --metrics 0.0.0.0:49312
+    command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN-? "Environment variable CLOUDFLARED_TUNNEL_TOKEN must be set"}
+      - TUNNEL_METRICS=127.0.0.1:49312
+      - TUNNEL_TRANSPORT_PROTOCOL=http2
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:49312/ready"]
