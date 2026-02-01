@@ -43,7 +43,7 @@ services:
       - TUNNEL_TRANSPORT_PROTOCOL=http2
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:49312/ready"]
+      test: ["CMD", "cloudflared", "tunnel", "ready"]
       interval: 30s
       timeout: 10s
       retries: 3
