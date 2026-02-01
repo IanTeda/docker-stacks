@@ -1,0 +1,62 @@
+# WireGuard VPN Client
+#
+# This sets up a WireGuard VPN client with a kill switch.
+# Other containers can access the VPN by using network_mode: service:wireguard
+# or by joining the same network and routing through the container.
+#
+# Place your wg0.conf client configuration file in ./config/wg_confs/<tunnel name>.conf
+#
+# Example for other containers in the same compose:
+# services:
+#   other_service:
+#     image: someimage
+#     network_mode: service:wireguard
+#     ...
+#     depends_on:
+#       - wireguard
+#
+# Or in separate compose files, use external network.
+# ...
+# networks:
+#   wireguard-network:
+#     external: true
+# ...
+#
+# References:
+# - WireGuard Documentation: https://www.wireguard.com/
+# - LinuxServer.io WireGuard Container: https://docs.linuxserver.io/images/docker-wire
+# Version: 1.0.0
+# Last Updated: 2026-01-26
+# Changes: Initial setup with WireGuard VPN client and kill switch
+
+---
+
+networks:
+  # Define an external network for WireGuard (default for this compose file)
+  default:
+    name: wireguard-network
+    driver: bridge
+
+services:
+  wireguard:
+    image: linuxserver/wireguard:${WIREGUARD_VERSION:-latest}
+    container_name: wireguard
+    restart: unless-stopped
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-Etc/UTC}
+    volumes:
+      - ${WIREGUARD_PATH:-./.wireguard}/config:/config
+      - /lib/modules:/lib/modules:ro
+    healthcheck:
+      test: "ip -d link | grep -q wireguard"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
