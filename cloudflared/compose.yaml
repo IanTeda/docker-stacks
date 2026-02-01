@@ -6,7 +6,6 @@
 # - Cloudflare Tunnel Documentation: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/
 # - Cloudflared GitHub: https://github.com/cloudflare/cloudflared
 #
-
 #
 # # How to get started:
 # 
@@ -37,9 +36,15 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:${CLOUDFLARED_VERSION:-latest}
     container_name: cloudflared
-    command: tunnel --no-autoupdate run
+    command: tunnel --no-autoupdate run --metrics 0.0.0.0:49312
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN-? "Environment variable CLOUDFLARED_TUNNEL_TOKEN must be set"}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:49312/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
