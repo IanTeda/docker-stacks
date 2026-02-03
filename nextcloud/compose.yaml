@@ -1,22 +1,55 @@
+# -----------------------------------------------------------------------------
+# Nextcloud Docker Compose Configuration
+# -----------------------------------------------------------------------------
+# This docker-compose.yml file sets up a complete Nextcloud instance with:
+# - Nextcloud web application (LinuxServer.io image)
+# - PostgreSQL database
+# - Redis cache/session store
+#
+# Requirements:
+# - Copy .env.sample to .env and configure environment variables
+# - Ensure required environment variables are set (POSTGRES_PASSWORD, etc.)
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose down           # Stop all services
+#   docker-compose logs -f        # View logs
+#
+# Networks:
+# - nextcloud-network: Internal network for service communication
+# - cloudflared-network: External network for Cloudflare tunnel (if used)
+#
+# Volumes:
+# - Data persists in ${NEXTCLOUD_PATH:-./.data}/ directories
+#
+# Version: 2026-02-04
+# Based on: LinuxServer.io Nextcloud, PostgreSQL 15+, Redis latest
+# -----------------------------------------------------------------------------
+
 networks:
   default: # this docker-compose network
-    name: nextcloud
+    name: nextcloud-network
     driver: bridge
-  cloudflare: # Cloudflare zero trust tunnel network
+  cloudflared-network:
     external: true
 
 services:
   nextcloud:
-    # https://github.com/linuxserver/docker-nextcloud/releases
     image: lscr.io/linuxserver/nextcloud:${NEXTCLOUD_VERSION:-latest}
-    container_name: nextcloud_app
+    container_name: nextcloud
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB:-nextcloud}
+      - POSTGRES_USER=${POSTGRES_USER:-nextcloud}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:? "Environment variable POSTGRES_PASSWORD must be set"}
+      - REDIS_HOST=redis
+      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:? "Environment variable REDIS_PASSWORD must be set"}
     volumes:
-      - ${NEXTCLOUD_PATH}/config:/config
-      - ${NEXTCLOUD_PATH}/data:/data
+      - ${NEXTCLOUD_PATH:-./.data}/config:/config
+      - ${NEXTCLOUD_PATH:-./.data}/data:/data
       - /etc/localtime:/etc/localtime:ro
     ports:
       - 3443:443/tcp # Can be commented out once cloudflare up
@@ -24,44 +57,66 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     depends_on:
-      - mariadb
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - default
-      - cloudflare
+      - cloudflared-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -k https://localhost:443/status.php || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
     
-  mariadb:
-    # https://github.com/linuxserver/docker-mariadb/releases
-    image: lscr.io/linuxserver/mariadb:${MARIADB_VERSION:-latest}
-    container_name: nextcloud_mariadb
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-latest}
+    container_name: nextcloud-postgres
+    restart: always
+    networks:
+      - default
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - MYSQL_ROOT_PASSWORD=${NEXTCLOUD_MARIADB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - MYSQL_PASSWORD=${NEXTCLOUD_MARIADB_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:? "Environment variable POSTGRES_PASSWORD must be set"}
+      - POSTGRES_USER=${POSTGRES_USER:-nextcloud}
+      - POSTGRES_DB=${POSTGRES_DB:-nextcloud}
     volumes:
-      - ${NEXTCLOUD_PATH}/mariadb:/config
-    security_opt:
-      - no-new-privileges:true
-    restart: unless-stopped
-    # networks:
-    #   - default
+      - ${NEXTCLOUD_PATH:-./.data}/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nextcloud}"]
+      interval: 10s
+      start_period: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+
 
   redis:
-    # https://hub.docker.com/_/redis?tab=tags
     image: redis:${REDIS_VERSION:-latest}
-    container_name: nextcloud_redis
-    security_opt:
-      - no-new-privileges:true
+    networks:
+      - default
+    container_name: nextcloud-redis
     restart: unless-stopped
-    # networks:
-    #   - default
+    volumes:
+      - ${NEXTCLOUD_PATH:-./.data}/redis:/data
+    command:
+      - /bin/sh
+      - -c
+      - redis-server --requirepass "$$REDIS_PASSWORD"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:? "Environment variable REDIS_PASSWORD must be set"}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
