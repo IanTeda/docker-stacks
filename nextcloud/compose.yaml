@@ -38,9 +38,9 @@ services:
     image: lscr.io/linuxserver/nextcloud:${NEXTCLOUD_VERSION:-latest}
     container_name: nextcloud
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      - PUID=${PUID:- 1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=${POSTGRES_DB:-nextcloud}
       - POSTGRES_USER=${POSTGRES_USER:-nextcloud}
