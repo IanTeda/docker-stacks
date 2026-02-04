@@ -10,6 +10,7 @@ To use Redis `/config/www/nextcloud/config/config.php needs to be updated to inc
 'redis' => [
     'host' => 'redis',
     'port' => 6379,
+    'password' => getenv('REDIS_HOST_PASSWORD'),
 ],
 'memcache.locking' => '\OC\Memcache\Redis',
 ```
@@ -48,10 +49,10 @@ php_value memory_limit 2048M
 * Server address: smtp.gmail.com:465
 * Credentials: gmailusername/app-password-in-settings
 
+
 ## Cloudflare
 
 Use internal docker container names for FQN in cloudflare.
-
 
 ### References
 
