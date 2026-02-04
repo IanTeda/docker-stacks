@@ -63,13 +63,10 @@ services:
     # Redis is used purely for caching in Nextcloud (e.g., sessions and locks), 
     # so persistence is disabled (--save "" --appendonly no) to avoid disk writes, 
     # and no volume is mounted to keep data ephemeral.
-    command:
-      - /bin/sh
-      - -c
-      - redis-server --requirepass "$$REDIS_PASSWORD" --save "" --appendonly no
+    command: redis-server --save "" --appendonly no
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -95,7 +92,6 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-nextcloud}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:? "Environment variable POSTGRES_PASSWORD must be set"}
       - REDIS_HOST=redis
-      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:? "Environment variable REDIS_PASSWORD must be set"}
     volumes:
       - ${NEXTCLOUD_PATH:-./.data}/config:/config
       - ${NEXTCLOUD_PATH:-./.data}/data:/data
