@@ -1,4 +1,4 @@
 .*
-!.env.example
+!**/.env.sample
 .DS_Store
 traefik/config/acme.json
