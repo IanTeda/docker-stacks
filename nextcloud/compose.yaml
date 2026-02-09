@@ -95,7 +95,6 @@ services:
     volumes:
       - ${NEXTCLOUD_PATH:-./.data}/config:/config
       - ${NEXTCLOUD_PATH:-./.data}/data:/data
-      - /etc/localtime:/etc/localtime:ro
     ports:
       - 3443:443/tcp # Can be commented out once cloudflare up
     security_opt:

@@ -10,8 +10,8 @@ To use Redis `/config/www/nextcloud/config/config.php needs to be updated to inc
 'redis' => [
     'host' => 'redis',
     'port' => 6379,
-    'password' => getenv('REDIS_HOST_PASSWORD'),
 ],
+'memcache.local' => '\OC\Memcache\Redis',
 'memcache.locking' => '\OC\Memcache\Redis',
 ```
 
@@ -29,14 +29,15 @@ To use a reverse proxy your domain needs to be added as a trusted_domain in `/co
 
 ## Increase PHP Memory Usage
 
-/www/nextcloud/.htaccess
+.../nextcloud/config/php/php-local.ini
 
 ```properties
-php_value upload_max_filesize 16G
-php_value post_max_size 16G
-php_value max_input_time 3600
-php_value max_execution_time 3600
-php_value memory_limit 2048M
+memory_limit          = 2048M
+upload_max_filesize   = 2048M
+post_max_size         = 2048M
+
+max_execution_time = 3600
+max_input_time = 3600
 ```
 
 ## SMTP Settings
