@@ -1,0 +1,137 @@
+# Ghostfolio - Open Source Wealth Management Software
+# https://github.com/ghostfolio/ghostfolio
+#
+# This Docker Compose file sets up a complete Ghostfolio stack with:
+# - Ghostfolio web application (latest version)
+# - PostgreSQL database for persistent data storage
+# - Redis cache in cache-only mode (no persistence for better performance)
+#
+# Features:
+# - Health checks for all services
+# - Security hardening (capability dropping, no-new-privileges)
+# - Volume mounts for data and config persistence
+# - Configurable via environment variables
+# - Watchtower integration for automatic updates
+# - Traefik reverse proxy ready
+#
+# Setup:
+# 1. Replace <INSERT_*> placeholders with actual values
+# 2. Generate random strings for ACCESS_TOKEN_SALT and JWT_SECRET_KEY
+# 3. Run: docker compose up -d
+# 4. Access Ghostfolio at http://localhost:3333
+
+---
+
+# Docker Compose configuration for Ghostfolio
+name: ${COMPOSE_PROJECT_NAME:-ghostfolio}
+
+# Define docker networks for internal communication and external access
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-ghostfolio}-network
+    driver: bridge
+  # traefik-network:
+  #   external: true
+
+services:
+  ghostfolio:
+    image: ghostfolio/ghostfolio:${GHOSTFOLIO_VERSION:-latest}
+    container_name: ${COMPOSE_PROJECT_NAME:-ghostfolio}
+    restart: unless-stopped
+    # Run as the main process in the docker container to handle signals properly
+    init: true
+    # Security hardening: drop all capabilities and only add those necessary for the application to function
+    cap_drop:
+      - ALL
+    # Security hardening: add only necessary capabilities for the application to function
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - ACCESS_TOKEN_SALT=<INSERT_RANDOM_STRING>
+      - DATABASE_URL=postgresql://user:<INSERT_POSTGRES_PASSWORD>@postgres:5432/ghostfolio-db?connect_timeout=300&sslmode=prefer
+      - JWT_SECRET_KEY=<INSERT_RANDOM_STRING>
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=<INSERT_REDIS_PASSWORD>
+    ports:
+      - "${GHOSTFOLIO_PORT:-3333}:3333"
+    volumes:
+      - ${GHOSTFOLIO_VOLUME_PATH:-./.volume}/data:/var/lib/ghostfolio
+      - ${GHOSTFOLIO_VOLUME_PATH:-./.volume}/config:/app/config
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3333/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-latest}
+    container_name: ${COMPOSE_PROJECT_NAME:-ghostfolio}-postgres
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_READ_SEARCH
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - POSTGRES_DB=ghostfolio-db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=<INSERT_POSTGRES_PASSWORD>
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${GHOSTFOLIO_VOLUME_PATH:-./.volume}/postgres:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+
+  redis:
+    image: redis:${REDIS_VERSION:-latest}
+    container_name: ${COMPOSE_PROJECT_NAME:-ghostfolio}-redis
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - REDIS_PASSWORD=<INSERT_REDIS_PASSWORD>
+    command:
+      - /bin/sh
+      - -c
+      - redis-server --requirepass $${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set} --save "" --appendonly no
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --pass $${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
