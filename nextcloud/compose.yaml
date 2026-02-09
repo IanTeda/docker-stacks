@@ -34,6 +34,52 @@ networks:
     external: true
 
 services:
+    
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-latest}
+    container_name: nextcloud-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:? "Environment variable POSTGRES_PASSWORD must be set"}
+      - POSTGRES_USER=${POSTGRES_USER:-nextcloud}
+      - POSTGRES_DB=${POSTGRES_DB:-nextcloud}
+    volumes:
+      - ${NEXTCLOUD_PATH:-./.data}/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nextcloud}"]
+      interval: 10s
+      start_period: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+
+  redis:
+    image: redis:${REDIS_VERSION:-latest}
+    container_name: nextcloud-redis
+    # Redis is used purely for caching in Nextcloud (e.g., sessions and locks), 
+    # so persistence is disabled (--save "" --appendonly no) to avoid disk writes, 
+    # and no volume is mounted to keep data ephemeral.
+    command: redis-server --save "" --appendonly no
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+
   nextcloud:
     image: lscr.io/linuxserver/nextcloud:${NEXTCLOUD_VERSION:-latest}
     container_name: nextcloud
@@ -68,54 +114,5 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    labels:
-      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
-    
-  postgres:
-    image: postgres:${POSTGRES_VERSION:-latest}
-    container_name: nextcloud-postgres
-    restart: always
-    networks:
-      - default
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:? "Environment variable POSTGRES_PASSWORD must be set"}
-      - POSTGRES_USER=${POSTGRES_USER:-nextcloud}
-      - POSTGRES_DB=${POSTGRES_DB:-nextcloud}
-    volumes:
-      - ${NEXTCLOUD_PATH:-./.data}/postgres:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nextcloud}"]
-      interval: 10s
-      start_period: 5s
-      retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
-
-
-  redis:
-    image: redis:${REDIS_VERSION:-latest}
-    networks:
-      - default
-    container_name: nextcloud-redis
-    restart: unless-stopped
-    volumes:
-      - ${NEXTCLOUD_PATH:-./.data}/redis:/data
-    command:
-      - /bin/sh
-      - -c
-      - redis-server --requirepass "$$REDIS_PASSWORD"
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:? "Environment variable REDIS_PASSWORD must be set"}
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
