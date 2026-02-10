@@ -48,9 +48,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - ACCESS_TOKEN_SALT=<INSERT_RANDOM_STRING>
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}@postgres:5432/${POSTGRES_DB:-ghostfolio-db}?connect_timeout=300&sslmode=prefer
-      - JWT_SECRET_KEY=<INSERT_RANDOM_STRING>
+      - ACCESS_TOKEN_SALT=${ACCESS_TOKEN_SALT:?ACCESS_TOKEN_SALT environment variable is required}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ghostfolio}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}@postgres:5432/${POSTGRES_DB:-ghostfolio}?connect_timeout=300&sslmode=prefer
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY environment variable is required}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD environment variable is required}
@@ -92,8 +92,8 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-ghostfolio-db}
-      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_DB=${POSTGRES_DB:-ghostfolio}
+      - POSTGRES_USER=${POSTGRES_USER:-ghostfolio}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
