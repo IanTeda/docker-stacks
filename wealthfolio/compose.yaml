@@ -1,0 +1,71 @@
+# Wealthfolio - Beautiful Private and Secure Desktop Investment Tracker
+# https://github.com/afadil/wealthfolio
+#
+# This Docker Compose file sets up Wealthfolio in web mode with:
+# - Wealthfolio web application and REST API server
+# - SQLite database for local data storage
+# - Optional authentication and encryption
+#
+# Features:
+# - Health checks for service monitoring
+# - Security hardening (capability dropping, no-new-privileges)
+# - Volume mounts for data persistence
+# - Configurable via environment variables
+# - Watchtower integration for automatic updates
+# - Traefik reverse proxy ready
+#
+# Setup:
+# 1. Copy .env.sample to .env
+# 2. Replace <INSERT_*> placeholders with actual values
+# 3. Generate a 32-byte secret key for WF_SECRET_KEY
+# 4. Run: docker compose up -d
+# 5. Access Wealthfolio at http://localhost:8088
+
+---
+
+# Docker Compose configuration for Wealthfolio
+name: ${COMPOSE_PROJECT_NAME:-wealthfolio}
+
+# Define docker networks for internal communication and external access
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-wealthfolio}-network
+    driver: bridge
+  # traefik-network:
+  #   external: true
+
+services:
+  wealthfolio:
+    image: afadil/wealthfolio:${WEALTHFOLIO_VERSION:-latest}
+    container_name: ${COMPOSE_PROJECT_NAME:-wealthfolio}
+    restart: unless-stopped
+    # Run as the main process in the docker container to handle signals properly
+    init: true
+    # Security hardening: drop all capabilities and only add those necessary for the application to function
+    cap_drop:
+      - ALL
+    # Security hardening: add only necessary capabilities for the application to function
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - WF_AUTH_PASSWORD_HASH=${WF_AUTH_PASSWORD_HASH:?WF_AUTH_PASSWORD_HASH environment variable is required}
+      - WF_CORS_ALLOW_ORIGINS=*
+      - WF_LISTEN_ADDR=0.0.0.0:8088
+      - WF_SECRET_KEY=${WF_SECRET_KEY:?WF_SECRET_KEY environment variable is required}
+    ports:
+      - "${WEALTHFOLIO_PORT:-8088}:8088"
+    volumes:
+      - ${WEALTHFOLIO_VOLUME_PATH:-./.volume}/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
