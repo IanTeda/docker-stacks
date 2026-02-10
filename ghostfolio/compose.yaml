@@ -15,10 +15,11 @@
 # - Traefik reverse proxy ready
 #
 # Setup:
-# 1. Replace <INSERT_*> placeholders with actual values
-# 2. Generate random strings for ACCESS_TOKEN_SALT and JWT_SECRET_KEY
-# 3. Run: docker compose up -d
-# 4. Access Ghostfolio at http://localhost:3333
+# 1. Copy .env.sample to .env
+# 2. Replace <INSERT_*> placeholders with actual values
+# 3. Generate random strings for ACCESS_TOKEN_SALT and JWT_SECRET_KEY
+# 4. Run: docker compose up -d
+# 5. Access Ghostfolio at http://localhost:3333
 
 ---
 
@@ -48,11 +49,11 @@ services:
       - no-new-privileges:true
     environment:
       - ACCESS_TOKEN_SALT=<INSERT_RANDOM_STRING>
-      - DATABASE_URL=postgresql://user:<INSERT_POSTGRES_PASSWORD>@postgres:5432/ghostfolio-db?connect_timeout=300&sslmode=prefer
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}@postgres:5432/${POSTGRES_DB:-ghostfolio-db}?connect_timeout=300&sslmode=prefer
       - JWT_SECRET_KEY=<INSERT_RANDOM_STRING>
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=<INSERT_REDIS_PASSWORD>
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD environment variable is required}
     ports:
       - "${GHOSTFOLIO_PORT:-3333}:3333"
     volumes:
@@ -91,9 +92,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - POSTGRES_DB=ghostfolio-db
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=<INSERT_POSTGRES_PASSWORD>
+      - POSTGRES_DB=${POSTGRES_DB:-ghostfolio-db}
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       interval: 10s
@@ -118,7 +119,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - REDIS_PASSWORD=<INSERT_REDIS_PASSWORD>
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-? Environment variable REDIS_PASSWORD is required}
     command:
       - /bin/sh
       - -c
