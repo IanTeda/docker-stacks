@@ -92,7 +92,6 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-nextcloud}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:? "Environment variable POSTGRES_PASSWORD must be set"}
       - REDIS_HOST=redis
-      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:? "Environment variable REDIS_PASSWORD must be set"}
     volumes:
       - ${NEXTCLOUD_PATH:-./.data}/config:/config
       - ${NEXTCLOUD_PATH:-./.data}/data:/data
