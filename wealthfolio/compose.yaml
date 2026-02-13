@@ -31,8 +31,8 @@ networks:
   default:
     name: ${COMPOSE_PROJECT_NAME:-wealthfolio}-network
     driver: bridge
-  # traefik-network:
-  #   external: true
+  traefik-network:
+    external: true
 
 services:
   wealthfolio:
@@ -50,14 +50,14 @@ services:
     environment:
       - WF_AUTH_PASSWORD_HASH=${WF_AUTH_PASSWORD_HASH:?WF_AUTH_PASSWORD_HASH environment variable is required}
       - WF_CORS_ALLOW_ORIGINS=*
-      - WF_LISTEN_ADDR=0.0.0.0:8088
+      - WF_LISTEN_ADDR=0.0.0.0:${WEALTHFOLIO_PORT:-8088}
       - WF_SECRET_KEY=${WF_SECRET_KEY:?WF_SECRET_KEY environment variable is required}
     ports:
       - "${WEALTHFOLIO_PORT:-8088}:8088"
     volumes:
       - ${WEALTHFOLIO_VOLUME_PATH:-./.volume}/data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8088/api/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/api/v1/healthz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
