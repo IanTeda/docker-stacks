@@ -39,7 +39,7 @@ networks:
 
 services:
   wireguard:
-    image: linuxserver/wireguard:${WIREGUARD_VERSION:-latest}
+    image: lscr.io/linuxserver/wireguard:${WIREGUARD_VERSION:-latest}
     container_name: wireguard
     restart: unless-stopped
     sysctls:
@@ -52,7 +52,7 @@ services:
       PGID: ${PGID:-1000}
       TZ: ${TZ:-Etc/UTC}
     volumes:
-      - ${WIREGUARD_PATH:-./.wireguard}/config:/config
+      - ${WIREGUARD_PATH:-./.volume}/config:/config
       - /lib/modules:/lib/modules:ro
     healthcheck:
       test: "ip -d link | grep -q wireguard"
