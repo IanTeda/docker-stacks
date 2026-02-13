@@ -34,7 +34,6 @@ networks:
     external: true
 
 services:
-    
   postgres:
     image: postgres:${POSTGRES_VERSION:-latest}
     container_name: nextcloud-postgres
