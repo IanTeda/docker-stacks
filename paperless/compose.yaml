@@ -141,7 +141,7 @@ services:
         condition: service_started
     networks:
       - default
-      # - traefik-network
+      - traefik-network
     ports:
       - "8000:8000"
     volumes:
@@ -175,4 +175,9 @@ services:
       PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: ${PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS:-false}
     labels:
       - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-true}"
+      # Traefik labels for reverse proxy routing (uncomment if using Traefik)
+      - "traefik.enable=${TRAEFIK_ENABLE:-false}"
+      - "traefik.http.routers.paperless.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.paperless.entrypoints=websecure"
+      - "traefik.http.services.paperless.loadbalancer.server.port=8000"
     
