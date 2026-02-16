@@ -45,6 +45,7 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-paperless}-redis
     # Redis with AOF persistence for task queues and session data
     command: redis-server --appendonly yes --appendfsync everysec
+    user: ${PUID:-1000}:${PGID:-1000}
     restart: unless-stopped
     volumes:
       - ${PAPERLESS_PATH:-./.volume}/redis:/data
@@ -66,6 +67,7 @@ services:
     image: postgres:${POSTGRES_VERSION:-latest}
     container_name: ${COMPOSE_PROJECT_NAME:-paperless}-postgres
     restart: unless-stopped
+    user: ${PUID:-1000}:${PGID:-1000}
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:? "Environment variable POSTGRES_PASSWORD must be set"}
       - POSTGRES_USER=${POSTGRES_USER:-paperless}
@@ -97,6 +99,7 @@ services:
       - "gotenberg"
       - "--chromium-disable-javascript=true"
       - "--chromium-allow-list=file:///tmp/.*"
+    user: ${PUID:-1000}:${PGID:-1000}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -115,6 +118,7 @@ services:
     image: docker.io/apache/tika:${TIKA_VERSION:-latest}
     container_name: ${COMPOSE_PROJECT_NAME:-paperless}-tika
     restart: unless-stopped
+    user: ${PUID:-1000}:${PGID:-1000}
     # Note: No health check - Tika image lacks curl/wget, service starts quickly
     logging:
       driver: json-file
