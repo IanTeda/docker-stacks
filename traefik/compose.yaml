@@ -46,7 +46,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${TRAEFIK_PATH:-./.volume}/acme.json:/acme.json
-      - ${TRAEFIK_PATH:-./config}/traefik.yml:/traefik.yml:ro
+      - ./config/traefik.yml:/traefik.yml:ro
     command:
       #- "--log.level=DEBUG"
       - "--api.dashboard=true"
