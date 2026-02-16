@@ -46,7 +46,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${TRAEFIK_PATH:-./.volume}/acme.json:/acme.json
-      - ./config/traefik.yml:/traefik.yml:ro
+      # Mount the entire config directory to avoid "is a directory" errors if the file is missing
+      - ./config:/etc/traefik:ro
     command:
       #- "--log.level=DEBUG"
       - "--api.dashboard=true"

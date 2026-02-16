@@ -4,7 +4,7 @@
 # providers, and certificate resolvers. Dynamic configurations are handled via
 # Docker labels and command-line arguments.
 #
-# Mounted as /traefik.yml in the container.
+# Mounted as /etc/traefik/traefik.yml in the container.
 #
 # Version: 1.0
 # Last Updated: 2026-02-16
