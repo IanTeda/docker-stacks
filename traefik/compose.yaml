@@ -38,6 +38,7 @@ services:
       - 80:80
       - 443:443
       - 443:443/udp # HTTP/3 support (optional)
+      - 8080:8080 # Dashboard (optional, can be disabled if only using HTTPS)
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN} # Cloudflare API token for DNS challenge
       - CF_API_EMAIL=${CF_API_EMAIL} # Cloudflare account email for ACME registration
