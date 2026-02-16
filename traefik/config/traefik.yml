@@ -1,3 +1,14 @@
+# Traefik Static Configuration File
+#
+# This file contains the static configuration for Traefik, including entry points,
+# providers, and certificate resolvers. Dynamic configurations are handled via
+# Docker labels and command-line arguments.
+#
+# Mounted as /traefik.yml in the container.
+#
+# Version: 1.0
+# Last Updated: 2026-02-16
+
 ## -- ./config/traefik.yml
 
 # Set the log level 
@@ -7,8 +18,8 @@
 # Enable the dashboard with useful information 
 api:
   dashboard: true
-  insecure: true
-  debug: true
+  insecure: false
+  debug: false
 
 # Providers feed into Traefik
 providers:
@@ -20,26 +31,25 @@ providers:
     # Turn off "auto-scraping" of containers by traffic otherwise it will try to 
     # proxy all containers 
     exposedByDefault: false
-  
-  # Set up external providers in the config.yml file
-  # file:
-  #   filename: /config.yml
+    
+    # Network for Traefik
+    network: traefik-network
 
 # Entry points (ports) that will access to Traefik
 entryPoints:
   # The name of the entry point for regular http traffic, usually called http or web, 
   # but you can call it anything
-  http:
+  web:
     address: ":80"
     http:
       # Set up a redirect for all requests to the https entry point 
       redirections:
         entryPoint:
-          to: https
+          to: websecure
           scheme: https
   # The name of the entry point for https traffic, usually called https or websecure, 
   # but you can call it anything
-  https:
+  websecure:
     address: ":443"
 
 # Don't check self signed certificates used within Traefik network

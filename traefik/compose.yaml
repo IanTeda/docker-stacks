@@ -1,95 +1,82 @@
-# Traefik
-# 
-# Reverse proxy for docker services
-# https://technotim.live/posts/traefik-3-docker-certificates/
+# Traefik Docker Compose Configuration
+#
+# This file sets up Traefik as a reverse proxy with automatic HTTPS using Let's Encrypt
+# and Cloudflare DNS challenge for certificate management.
+#
+# Prerequisites:
+# 1. Create the external network: docker network create traefik-network
+# 2. Create .env file from .env.sample and fill in your values
+# 3. Ensure acme.json exists with 600 permissions: touch .volume/acme.json && chmod 600 .volume/acme.json
+#
+# Usage:
+# - Dashboard: https://${HOSTNAME}.${DOMAIN}/traefik/dashboard/
+# - Add services to traefik-network and use appropriate labels
+#
+# Version: 1.0
+# Last Updated: 2026-02-16
+# Note: Traefik configuration is split between this compose file and the static config in traefik.yml.
 
+---
+
+# Docker Compose configuration for Traefik
+name: ${COMPOSE_PROJECT_NAME:-traefik}
+
+# Add the Traefik network as an external network that other services can connect to for proxying
 networks:
   default:
-    name: traefik
+    name: traefik-network
     driver: bridge
-# To get access in other containers use
-# networks:
-#   traefik:
-#    external: true
 
 services:
   traefik:
-    # https://hub.docker.com/_/traefik
     image: traefik:${TRAEFIK_VERSION:-latest}
-    container_name: traefik
+    container_name: ${COMPOSE_PROJECT_NAME:-traefik}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     ports:
-      - 88:80
+      - 80:80
       - 443:443
-      # - 8080:8080 # Traefik dashboard
-      # - 443:443/tcp # Uncomment if you want HTTP3
-      # - 443:443/udp # Uncomment if you want HTTP3
+      - 443:443/udp # HTTP/3 support (optional)
     environment:
-      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN} # Token for accessing Cloudflare
-      TRAEFIK_DASHBOARD_CREDENTIALS: ${TRAEFIK_DASHBOARD_CREDENTIALS} # Traefik dashboard username and password
-    env_file: .env
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN} # Cloudflare API token for DNS challenge
+      - CF_API_EMAIL=${CF_API_EMAIL} # Cloudflare account email for ACME registration
+      - TRAEFIK_DASHBOARD_CREDENTIALS=${TRAEFIK_DASHBOARD_CREDENTIALS}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${TRAEFIK_PATH:-.}/config/traefik.yml:/traefik.yml:ro # Traefik use .yml
-      - ${TRAEFIK_PATH:-.}/config/acme.json:/acme.json # I need to chmod 600
-      # - ${TRAEFIK_PATH:-.}/config/config.yml:/config.yml:ro
-    labels:
-      ## Keep container image updated to latest version
-      - "com.centurylinklabs.watchtower.enable=true"
+      - ${TRAEFIK_PATH:-./.volume}/acme.json:/acme.json
+      - ${TRAEFIK_PATH:-./config}/traefik.yml:/traefik.yml:ro
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.dashboard=true"
       
-      ## Traefik dashboard proxy configuration
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik.entrypoints=http"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.${HOSTNAME}.${DOMAIN}`)"
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_CREDENTIALS}"
-      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
-      - "traefik.http.routers.traefik-secure.entrypoints=https"
-      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${HOSTNAME}.${DOMAIN}`)"
-      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
-      
-      ## Lets Encrypt certificate configuration
-      - "traefik.http.routers.traefik-secure.tls=true"
-      - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare"
-      - "traefik.http.routers.traefik-secure.tls.domains[0].main=${DOMAIN}"
-      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.${DOMAIN}"
-      - "traefik.http.routers.traefik-secure.service=api@internal"
+      # Certificates Resolvers (Cloudflare)
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
+      # - "--certificatesresolvers.cloudflare.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory" # Staging
+      - "--certificatesresolvers.cloudflare.acme.email=${CF_API_EMAIL}"
+      - "--certificatesresolvers.cloudflare.acme.storage=/acme.json"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53"
 
-  # # Test and example for using Traefik
-  # whoami_subdomain: 
-  #   image: "traefik/whoami" 
-  #   container_name: traefik_whoami_subdomain
-  #   restart: unless-stopped
-  #   ports:
-  #     - 8081:80
-  #   labels: 
-  #     - "traefik.enable=true"
-  #     # Host Cname needs to be added your local DNS (i.e. Pi Hole)
-  #     - "traefik.http.routers.whoami_sub.rule=Host(`whoami.${HOSTNAME}.${DOMAIN}`)"
-  #     - "traefik.http.routers.whoami_sub.entrypoints=https"
-  #     - "traefik.http.routers.whoami_sub.tls=true"
-  #     - "traefik.http.services.whoami_sub.loadbalancer.server.port=80"
-  #     - "traefik.docker.network=traefik"
-  #   networks: 
-  #     - traefik
-    
-  #     # Test and example for using Traefik
-  # whoami_path: 
-  #   image: "traefik/whoami" 
-  #   container_name: traefik_whoami_path
-  #   restart: unless-stopped
-  #   ports:
-  #     - 8082:80
-  #   labels: 
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.whoami_path.rule=Host(`${HOSTNAME}.${DOMAIN}`) && PathPrefix(`/whoami`)"
-  #     - "traefik.http.routers.whoami_path.entrypoints=https"
-  #     - "traefik.http.routers.whoami_path.tls=true"
-  #     - "traefik.http.services.whoami_path.loadbalancer.server.port=80"
-  #     - "traefik.docker.network=traefik"
-  #   networks: 
-  #     - traefik
+    labels:
+      - "traefik.enable=true"
+      
+      # Dashboard Router
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`${HOSTNAME}.${DOMAIN}`) && (PathPrefix(`/traefik`) || PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth,traefik-strip-prefix"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
+      
+      # Middleware to strip /traefik prefix
+      - "traefik.http.middlewares.traefik-strip-prefix.stripprefix.prefixes=/traefik"
+
+      # Global Middleware (Auth)
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_CREDENTIALS}"
+
+      # Wildcard Certs
+      # Ensure the main cert covers domain and wildcard for other services reusing this resolver
+      - "traefik.http.routers.traefik-dashboard.tls.domains[0].main=${DOMAIN}"
+      - "traefik.http.routers.traefik-dashboard.tls.domains[0].sans=*.${DOMAIN}"
