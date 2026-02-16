@@ -33,8 +33,8 @@ networks:
   default: # this docker-compose network
     name: paperless-network
     driver: bridge
-  # traefik-network:
-  #   external: true
+  traefik-network:
+    external: true
 
 # Docker Compose configuration for Paperless
 name: ${COMPOSE_PROJECT_NAME:-paperless}
