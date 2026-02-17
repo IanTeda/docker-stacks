@@ -52,6 +52,9 @@ services:
       - WF_CORS_ALLOW_ORIGINS=*
       - WF_LISTEN_ADDR=0.0.0.0:${WEALTHFOLIO_PORT:-8088}
       - WF_SECRET_KEY=${WF_SECRET_KEY:?WF_SECRET_KEY environment variable is required}
+    networks:
+      - default
+      - traefik-network
     ports:
       - "${WEALTHFOLIO_PORT:-8088}:8088"
     volumes:
