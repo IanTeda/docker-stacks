@@ -179,7 +179,7 @@ services:
 
       # Traefik labels for reverse proxy routing (optional)
       - "traefik.enable=${TRAEFIK_ENABLED:-false}"
-      - "traefik.http.routers.paperless.rule=Host(`${TRAEFIK_PAPERLESS_DOMAIN}`)"
+      - "traefik.http.routers.paperless.rule=Host(`${TRAEFIK_PAPERLESS_DOMAIN:-paperless.local}`)"
       - "traefik.http.routers.paperless.entrypoints=websecure"
       - "traefik.http.routers.paperless.tls=true"
       - "traefik.http.services.paperless.loadbalancer.server.port=8000"
