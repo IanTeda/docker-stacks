@@ -174,10 +174,15 @@ services:
       PAPERLESS_CONSUMER_RECURSIVE: ${PAPERLESS_CONSUMER_RECURSIVE:-false}
       PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: ${PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS:-false}
     labels:
+      # Watchtower auto-update label (optional)
       - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-true}"
-      # Traefik labels for reverse proxy routing (uncomment if using Traefik)
-      - "traefik.enable=${TRAEFIK_ENABLE:-false}"
-      - "traefik.http.routers.paperless.rule=Host(`${TRAEFIK_DOMAIN}`)"
+
+      # Traefik labels for reverse proxy routing (optional)
+      - "traefik.enable=${TRAEFIK_ENABLED:-false}"
+      - "traefik.http.routers.paperless.rule=Host(`${TRAEFIK_PAPERLESS_DOMAIN}`)"
       - "traefik.http.routers.paperless.entrypoints=websecure"
+      - "traefik.http.routers.paperless.tls=true"
       - "traefik.http.services.paperless.loadbalancer.server.port=8000"
+      - "traefik.http.routers.paperless.priority=50"
+      - "traefik.docker.network=traefik-network"
     
