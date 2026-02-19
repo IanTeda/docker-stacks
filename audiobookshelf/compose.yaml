@@ -35,8 +35,8 @@ services:
       - default
       - traefik-network
     # If you use Traefik prefer `expose` + Traefik labels and comment out `ports`.
-    ports:
-      - "${AUDIOBOOKSHELF_PORT:-13378}:80"
+    # ports:
+    #   - "${AUDIOBOOKSHELF_PORT:-13378}:80"
     expose:
       - "80"
     volumes:
