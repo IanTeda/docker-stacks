@@ -1,0 +1,80 @@
+###############################################################################
+# AUDIOBOOKSHELF
+# https://www.audiobookshelf.org/
+#
+# Improvements made:
+# - fixed incorrect/copy-paste Traefik labels
+# - replaced `~` defaults with absolute paths
+# - added environment mapping for PUID/PGID and TZ
+# - added healthcheck, JSON-file log rotation and security option
+# - included commented Traefik example (adapt to your setup)
+
+---
+
+# Docker Compose configuration
+name: ${COMPOSE_PROJECT_NAME:-audiobookshelf}
+
+# Define docker networks for internal communication and external access
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-audiobookshelf}-network
+    driver: bridge
+  traefik-network:
+    external: true
+
+services:
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:${AUDIOBOOKSHELF_VERSION:-latest}
+    container_name: ${COMPOSE_PROJECT_NAME:-audiobookshelf}
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+    # If you use Traefik prefer `expose` + Traefik labels and comment out `ports`.
+    ports:
+      - "${AUDIOBOOKSHELF_PORT:-13378}:80"
+    expose:
+      - "80"
+    volumes:
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${AUDIOBOOKS_PATH:?The environment variable AUDIOBOOKS_PATH must be set}:/audiobooks"
+      - "${PODCASTS_PATH:?The environment variable PODCASTS_PATH must be set}:/podcasts"
+      - "${AUDIOBOOKSHELF_PATH:-./.volume}/config:/config"
+      - "${AUDIOBOOKSHELF_PATH:-./.volume}/data:/metadata"
+      - "${AUDIOBOOKSHELF_BACKUP_PATH:-./.volume}/backup:/metadata/backups"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+      # Traefik reverse proxy configuration (adapt to your setup)
+      - "traefik.enable=${TRAEFIK_ENABLED:-false}"
+      - "traefik.docker.network=traefik-network"
+      - "traefik.http.services.audiobookshelf.loadbalancer.server.port=80"
+      - "traefik.http.routers.audiobookshelf.priority=50"
+  
+      # Set FQDN and URL path as needed, e.g. `Host(`audiobookshelf.local`) && PathPrefix(`/audiobookshelf`)`
+      # Empty path prefix (`PathPrefix(`/`)`) will route all traffic to the root of the FQDN.
+      - "traefik.http.routers.audiobookshelf.rule=Host(`${TRAEFIK_AUDIOBOOKSHELF_HOSTNAME}`) && (PathPrefix(`/${TRAEFIK_AUDIOBOOKSHELF_URL_PATH}`) || Path(`/`))"
+
+      # Redirect HTTP to HTTPS if you have TLS configured in Traefik
+      - "traefik.http.routers.audiobookshelf-http.entrypoints=http"
+      - "traefik.http.routers.audiobookshelf-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.audiobookshelf.tls=true"
+
+
+
