@@ -48,7 +48,7 @@ services:
       - "${AUDIOBOOKSHELF_PATH:-./.volume}/data:/metadata"
       - "${AUDIOBOOKSHELF_BACKUP_PATH:-./.volume}/backup:/metadata/backups"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:80/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -71,7 +71,7 @@ services:
   
       # Set FQDN and URL path as needed, e.g. `Host(`audiobookshelf.local`) && PathPrefix(`/audiobookshelf`)`
       # Empty path prefix (`PathPrefix(`/`)`) will route all traffic to the root of the FQDN.
-      - "traefik.http.routers.audiobookshelf.rule=Host(`${TRAEFIK_AUDIOBOOKSHELF_HOSTNAME}`) && (PathPrefix(`/${TRAEFIK_AUDIOBOOKSHELF_URL_PATH}`) || Path(`/`))"
+      - "traefik.http.routers.audiobookshelf.rule=Host(`${TRAEFIK_AUDIOBOOKSHELF_HOSTNAME}`)"
 
       # Redirect HTTP to HTTPS if you have TLS configured in Traefik
       - "traefik.http.routers.audiobookshelf-http.entrypoints=http"
