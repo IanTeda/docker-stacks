@@ -31,6 +31,9 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-UTC}
+    networks:
+      - default
+      - traefik-network
     # If you use Traefik prefer `expose` + Traefik labels and comment out `ports`.
     ports:
       - "${AUDIOBOOKSHELF_PORT:-13378}:80"
