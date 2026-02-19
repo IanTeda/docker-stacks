@@ -74,10 +74,7 @@ services:
       - "traefik.http.routers.audiobookshelf.rule=Host(`${TRAEFIK_AUDIOBOOKSHELF_HOSTNAME}`)"
 
       # Redirect HTTP to HTTPS if you have TLS configured in Traefik
-      - "traefik.http.routers.audiobookshelf-http.entrypoints=http"
+      - "traefik.http.routers.audiobookshelf-http.entrypoints=websecure"
       - "traefik.http.routers.audiobookshelf-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.routers.audiobookshelf.tls=true"
-
-
-
