@@ -103,7 +103,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
 
       # Traefik proxy configuration - only apply if TRAEFIK_ENABLED is set to true in the .env file
-      - "traefik.enable=${TRAEFIK_ENABLED}"
+      - "traefik.enable=${TRAEFIK_ENABLE}"
       - "traefik.http.routers.immich.rule=Host(`${TRAEFIK_IMMICH_DOMAIN:-immich.local}`)"
       - "traefik.http.routers.immich.entrypoints=websecure"
       - "traefik.http.routers.immich.tls=true"
