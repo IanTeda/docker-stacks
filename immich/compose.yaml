@@ -34,10 +34,9 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_DB: ${DB_DATABASE_NAME:-immich}
       POSTGRES_INITDB_ARGS: '--data-checksums'
-      # Uncomment the DB_STORAGE_TYPE: 'HDD' var if your database isn't stored on SSDs
-      # DB_STORAGE_TYPE: 'HDD'
+      # DB_STORAGE_TYPE: 'HDD' helps optimise postgres spinning disks by disabling the use of O_DIRECT, which can cause performance issues on HDDs. This is ignored on SSDs where O_DIRECT is beneficial.
+      DB_STORAGE_TYPE: 'HDD'
     volumes:
-      # Do not edit the next line. If you want to change the database storage location on your system, edit the value of IMMICH_DATA_PATH in the .env file
       - ${IMMICH_DATA_PATH:-./.volumes}/postgres:/var/lib/postgresql/data
     shm_size: 128mb
     healthcheck:
@@ -77,8 +76,10 @@ services:
     #   service: nvenc # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
     environment:
       - TZ=${TZ:-Etc/UTC}
+      - DB_PASSWORD=${DB_PASSWORD:? "Environment variable DB_PASSWORD must be set"}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_DATABASE_NAME=${DB_DATABASE_NAME:-immich}
     volumes:
-      # Do not edit the next line. If you want to change the media storage location on your system, edit the value of PHOTOS_PATH in the .env file
       - ${PHOTOS_PATH:-./.volumes/photos}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     networks:
@@ -99,11 +100,12 @@ services:
         max-size: "10m"
         max-file: "3"
     labels:
-      # Enable Watchtower updates for the server container if WATCHTOWER_UPDATE_ENABLE is set to true in the .env file
+      # Enable Watchtower updates for the server container if WATCHTOWER_UPDATE_ENABLE 
+      # is set to true in the .env file
       - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
 
       # Traefik proxy configuration - only apply if TRAEFIK_ENABLED is set to true in the .env file
-      - "traefik.enable=${TRAEFIK_ENABLE}"
+      - "traefik.enable=${TRAEFIK_ENABLE:-false}"
       - "traefik.http.routers.immich.rule=Host(`${TRAEFIK_IMMICH_DOMAIN:-immich.local}`)"
       - "traefik.http.routers.immich.entrypoints=websecure"
       - "traefik.http.routers.immich.tls=true"
