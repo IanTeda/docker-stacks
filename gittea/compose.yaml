@@ -102,7 +102,7 @@ services:
       - traefik-network
     ports:
       - "${GITEA_HTTP_PORT:-3180}:3000"
-      - "${GITEA_SSH_PORT:-3122}:22"
+      - "${GITEA_SSH_PORT:-3122}:2222"
     expose:
       - "3000"
       - "22"
@@ -126,7 +126,7 @@ services:
       - GITEA__server__DOMAIN=${GITEA_DOMAIN:? "Environment variable GITEA_DOMAIN must be set"}
       - GITEA__server__ROOT_URL=https://${GITEA_DOMAIN}
       - GITEA__server__HTTP_PORT=3000
-      - GITEA__server__SSH_PORT=22
+      - GITEA__server__SSH_PORT=2222
       - GITEA__server__DISABLE_SSH=false
       - GITEA__security__INSTALL_LOCK=true
       - GITEA__service__DISABLE_REGISTRATION=${GITEA_DISABLE_REGISTRATION:-false}
@@ -168,8 +168,8 @@ services:
       # SSH connections, so this uses HostSNI(`*`) which will route all SSH
       # TCP connections to this service on port 22. If you host multiple SSH
       # services behind Traefik, use different ports or IP addresses.
-      # - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh-3002"
-      # - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
-      # - "traefik.tcp.routers.gitea-ssh.tls=false"
-      # - "traefik.tcp.services.gitea-ssh.loadbalancer.server.port=22"
-      # - "traefik.tcp.routers.gitea-ssh.priority=50"
+      - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh-2222"
+      - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitea-ssh.tls=false"
+      - "traefik.tcp.services.gitea-ssh.loadbalancer.server.port=22"
+      - "traefik.tcp.routers.gitea-ssh.priority=50"
