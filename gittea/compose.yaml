@@ -49,7 +49,7 @@ services:
       - POSTGRES_USER=${GITEA_DB_USER:-gitea}
       - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD:? "Environment variable GITEA_DB_PASSWORD must be set"}
     volumes:
-      - ${GITEA_PATH:-./.volume}/postgres:/var/lib/postgresql/data
+      - ${GITEA_PATH:-./.volume}/postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${GITEA_DB_USER:-gitea} -d ${GITEA_DB_NAME:-gitea}"]
       interval: 10s
