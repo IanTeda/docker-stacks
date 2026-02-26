@@ -1,0 +1,175 @@
+# -----------------------------------------------------------------------------
+# Gitea Docker Compose Configuration
+# -----------------------------------------------------------------------------
+# Self-hosted Git service with PostgreSQL database and Redis for caching
+# and session management.
+#
+# References:
+# - Gitea Documentation:    https://docs.gitea.com/
+# - Gitea Docker:           https://docs.gitea.com/installation/install-with-docker
+# - Gitea app.ini reference: https://docs.gitea.com/administration/config-cheat-sheet
+#
+# Requirements:
+# - Copy .env.sample to .env and configure all required variables
+# - Ensure GITEA_DB_PASSWORD and GITEA_DOMAIN are set
+#
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose down           # Stop all services
+#   docker compose logs -f        # View logs
+#
+# Networks:
+# - gitea-network:       Internal network for service communication
+# - cloudflared-network: External network for Cloudflare tunnel (if used)
+#
+# Volumes:
+# - All data persists under ${GITEA_PATH:-./.volume}/
+#
+# Version: 2026-02-20
+# -----------------------------------------------------------------------------
+
+---
+
+name: ${COMPOSE_PROJECT_NAME:-gitea}
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-gitea}-network
+    driver: bridge
+  traefik-network:
+    external: true
+
+services:
+  database:
+    image: postgres:${POSTGRES_VERSION:-17}
+    container_name: ${COMPOSE_PROJECT_NAME:-gitea}-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${GITEA_DB_NAME:-gitea}
+      - POSTGRES_USER=${GITEA_DB_USER:-gitea}
+      - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD:? "Environment variable GITEA_DB_PASSWORD must be set"}
+    volumes:
+      - ${GITEA_PATH:-./.volume}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GITEA_DB_USER:-gitea} -d ${GITEA_DB_NAME:-gitea}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+
+  adapter:
+    image: redis:${REDIS_VERSION:-7}
+    container_name: ${COMPOSE_PROJECT_NAME:-gitea}-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - ${GITEA_PATH:-./.volume}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+
+  gitea:
+    image: gitea/gitea:${GITEA_VERSION:-latest}
+    container_name: ${COMPOSE_PROJECT_NAME:-gitea}
+    restart: unless-stopped
+    networks:
+      - default
+      - traefik-network
+    ports:
+      - "${GITEA_HTTP_PORT:-3180}:3000"
+      - "${GITEA_SSH_PORT:-3122}:22"
+    expose:
+      - "3000"
+      - "22"
+    volumes:
+      - ${GITEA_PATH:-./.volume}/data:/data
+      # - /etc/timezone:/etc/timezone:ro
+      # - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=${TZ:-UTC}
+      - USER_UID=${PUID:-1000}
+      - USER_GID=${PGID:-1000}
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=database:5432
+      - GITEA__database__NAME=${GITEA_DB_NAME:-gitea}
+      - GITEA__database__USER=${GITEA_DB_USER:-gitea}
+      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD:? "Environment variable GITEA_DB_PASSWORD must be set"}
+      - GITEA__cache__ADAPTER=redis
+      - GITEA__cache__HOST=network=tcp,addr=adapter:6379,db=0,pool_size=100,idle_timeout=180
+      - GITEA__session__PROVIDER=redis
+      - GITEA__session__PROVIDER_CONFIG=network=tcp,addr=adapter:6379,db=0
+      - GITEA__server__DOMAIN=${GITEA_DOMAIN:? "Environment variable GITEA_DOMAIN must be set"}
+      - GITEA__server__ROOT_URL=https://${GITEA_DOMAIN}
+      - GITEA__server__HTTP_PORT=${GITEA_HTTP_PORT:-3000}
+      - GITEA__server__SSH_PORT=${GITEA_SSH_PORT:-2222}
+      - GITEA__server__DISABLE_SSH=false
+      - GITEA__security__INSTALL_LOCK=true
+      - GITEA__service__DISABLE_REGISTRATION=${GITEA_DISABLE_REGISTRATION:-false}
+      - GITEA__service__REQUIRE_SIGNIN_VIEW=${GITEA_REQUIRE_SIGNIN_VIEW:-false}
+    depends_on:
+      database:
+        condition: service_healthy
+      adapter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/-/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      # Enable Watchtower updates for Gitea container
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_UPDATE_ENABLE:-false}"
+      
+      # Traefik reverse proxy configuration (adapt to your setup)
+      - "traefik.enable=${TRAEFIK_ENABLE:-false}"
+      - "traefik.http.routers.gitea.rule=Host(`${TRAEFIK_GITEA_HOSTNAME:-gitea.local}`)"
+      - "traefik.http.routers.gitea.entrypoints=websecure"
+      - "traefik.http.routers.gitea.tls=true"
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
+      - "traefik.http.routers.gitea.priority=50"
+      - "traefik.docker.network=traefik-network"
+
+      # TCP (SSH) routing via Traefik. Traefik must have an entrypoint named
+      # `ssh-3002` listening on host port 3002 and be connected to `traefik-network`.
+      # Note: SSH is raw TCP — hostname-based routing isn't available for plain
+      # SSH connections, so this uses HostSNI(`*`) which will route all SSH
+      # TCP connections to this service on port 22. If you host multiple SSH
+      # services behind Traefik, use different ports or IP addresses.
+      # - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh-3002"
+      # - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
+      # - "traefik.tcp.routers.gitea-ssh.tls=false"
+      # - "traefik.tcp.services.gitea-ssh.loadbalancer.server.port=22"
+      # - "traefik.tcp.routers.gitea-ssh.priority=50"
