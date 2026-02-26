@@ -155,7 +155,7 @@ services:
       
       # Traefik reverse proxy configuration (adapt to your setup)
       - "traefik.enable=${TRAEFIK_ENABLE:-false}"
-      - "traefik.http.routers.gitea.rule=Host(`${TRAEFIK_GITEA_HOSTNAME:-gitea.local}`)"
+      - "traefik.http.routers.gitea.rule=Host(`${GITEA_DOMAIN:-gitea.local}`)"
       - "traefik.http.routers.gitea.entrypoints=websecure"
       - "traefik.http.routers.gitea.tls=true"
       - "traefik.http.services.gitea.loadbalancer.server.port=3000"
