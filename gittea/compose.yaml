@@ -108,10 +108,10 @@ services:
       - "22"
     volumes:
       - ${GITEA_PATH:-./.volume}/data:/data
-      # - /etc/timezone:/etc/timezone:ro
-      # - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     environment:
-      - TZ=${TZ:-UTC}
+      # - TZ=${TZ:-UTC}
       - USER_UID=${PUID:-1000}
       - USER_GID=${PGID:-1000}
       - GITEA__database__DB_TYPE=postgres
@@ -137,7 +137,7 @@ services:
       adapter:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/-/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/healthz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
