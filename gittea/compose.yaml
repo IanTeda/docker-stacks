@@ -111,8 +111,8 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
-      - USER_UID=${PUID:-1000}
-      - USER_GID=${PGID:-1000}
+      # - USER_UID=${PUID:-1000}
+      # - USER_GID=${PGID:-1000}
       - GITEA__database__DB_TYPE=postgres
       - GITEA__database__HOST=database:5432
       - GITEA__database__NAME=${GITEA_DB_NAME:-gitea}
