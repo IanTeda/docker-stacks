@@ -111,7 +111,6 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
-      # - TZ=${TZ:-UTC}
       - USER_UID=${PUID:-1000}
       - USER_GID=${PGID:-1000}
       - GITEA__database__DB_TYPE=postgres
@@ -164,7 +163,7 @@ services:
 
       # TCP (SSH) routing via Traefik.
       - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh"
+      - "traefik.tcp.routers.gitea-ssh.entrypoints=gitea-ssh"
       - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh-svc"
       - "traefik.tcp.services.gitea-ssh.loadbalancer.server.port=2222"
       - "traefik.tcp.routers.gitea-ssh.priority=50"
